@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار قواعد البيانات | Abo3leo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #131314;
+            --card-color: #1e1f20;
+            --primary: #a8c7fa;
+            --correct: #00ff41;
+            --wrong: #ff5546;
+            --text: #e3e3e3;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text);
+            font-family: 'Cairo', 'Roboto', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            width: 100%;
+            padding: 20px;
+            background: rgba(30, 31, 32, 0.9);
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            border-bottom: 2px solid var(--primary);
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
+        .subtitle { font-size: 0.9rem; color: #888; margin-top: 5px; }
+
+        .quiz-container {
+            background: var(--card-color);
+            width: 90%;
+            max-width: 700px;
+            margin: 30px auto;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 1px solid #333;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .question-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 25px;
+            line-height: 1.6;
+            direction: ltr; /* الاسئلة بالانكليزي */
+            text-align: left;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-btn {
+            background: #2c2e30;
+            border: 2px solid #444;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            text-align: left;
+            direction: ltr;
+            transition: 0.2s;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .option-btn:hover:not([disabled]) {
+            background: #3c4043;
+            border-color: var(--primary);
+        }
+
+        .option-btn.correct { background: rgba(0, 255, 65, 0.2); border-color: var(--correct); }
+        .option-btn.wrong { background: rgba(255, 85, 70, 0.2); border-color: var(--wrong); }
+
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(168, 199, 250, 0.1);
+            border-right: 4px solid var(--primary);
+            border-radius: 4px;
+            font-size: 0.95rem;
+            display: none; /* مخفي بالبداية */
+            animation: fadeIn 0.3s;
+        }
+
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .next-btn {
+            background: var(--primary);
+            color: #000;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            display: none;
+        }
+        
+        .next-btn:hover { opacity: 0.9; }
+
+        /* شاشة النتيجة */
+        .result-screen {
+            text-align: center;
+            display: none;
+        }
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 5px solid var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 20px auto;
+            font-weight: bold;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>💎 Abo3leo Database Exam</h1>
+        <div class="subtitle">اختبار شامل (Normalization, ERD, Mapping)</div>
+    </header>
+
+    <div class="quiz-container" id="quiz-box">
+        <div class="progress-header">
+            <span id="q-progress">السؤال 1 من 30</span>
+            <span id="score-tracker">النتيجة: 0</span>
+        </div>
+
+        <div class="question-text" id="question"></div>
+        <div class="options-list" id="options"></div>
+
+        <div class="explanation" id="explanation">
+            <strong>💡 الشرح:</strong> <span id="explanation-text"></span>
+        </div>
+
+        <div class="controls">
+            <button class="next-btn" id="next-btn" onclick="nextQuestion()">السؤال التالي ⬅️</button>
+        </div>
+    </div>
+
+    <div class="quiz-container result-screen" id="result-box">
+        <h2>انتهى الاختبار يا بطل! 🦁</h2>
+        <div class="score-circle" id="final-score">0/30</div>
+        <p id="final-msg"></p>
+        <button class="next-btn" style="display:inline-block" onclick="location.reload()">إعادة الاختبار 🔄</button>
+    </div>
+
+    <script>
+        // قاعدة بيانات الأسئلة (30 سؤال)
+        const questions = [
+            // --- Part 1: Normalization ---
+            {
+                q: "1. What is the primary goal of Database Normalization?",
+                options: ["To increase data redundancy", "To minimize data redundancy and prevent anomalies", "To create as many tables as possible", "To secure the database from hackers"],
+                answer: 1,
+                hint: "الهدف الأساسي هو تقليل تكرار البيانات (Redundancy) ومنع مشاكل التعديل والإضافة والحذف (Anomalies)."
+            },
+            {
+                q: "2. A relation is said to be in First Normal Form (1NF) if:",
+                options: ["It has no partial dependencies", "It contains only atomic values", "It has no transitive dependencies", "It has a foreign key"],
+                answer: 1,
+                hint: "النموذج الأول (1NF) يشترط أن تكون جميع القيم في الخلايا ذرية (Atomic) وغير قابلة للتجزئة."
+            },
+            {
+                q: "3. Which anomaly occurs when updating a value in one record leaves other related records unchanged?",
+                options: ["Insertion Anomaly", "Deletion Anomaly", "Update Anomaly", "Selection Anomaly"],
+                answer: 2,
+                hint: "هذا يسمى 'شذوذ التعديل'. يحدث عندما نضطر لتحديث نفس المعلومة في عدة أماكن، مما يسبب تضارباً."
+            },
+            {
+                q: "4. To convert a relation to 2NF, you must eliminate:",
+                options: ["Transitive Dependencies", "Repeating Groups", "Partial Dependencies", "Atomic Values"],
+                answer: 2,
+                hint: "للوصول إلى 2NF، يجب إزالة 'الاعتماد الجزئي'، أي أن يعتمد العمود على جزء من المفتاح الأساسي فقط."
+            },
+            {
+                q: "5. Third Normal Form (3NF) requires a relation to be in 2NF and have no:",
+                options: ["Partial Dependencies", "Transitive Dependencies", "Duplicate Rows", "Null Values"],
+                answer: 1,
+                hint: "النموذج الثالث (3NF) يركز على إزالة 'الاعتماد المتعدي' (Transitive Dependency)."
+            },
+            {
+                q: "6. Which normal form handles overlapping candidate keys (stricter than 3NF)?",
+                options: ["BCNF", "1NF", "4NF", "5NF"],
+                answer: 0,
+                hint: "نموذج BCNF هو نسخة أكثر صرامة من 3NF ويعالج تداخل المفاتيح المرشحة."
+            },
+            {
+                q: "7. In a functional dependency A → B, what is attribute A called?",
+                options: ["Dependent", "Determinant", "Relation", "Tuple"],
+                answer: 1,
+                hint: "الطرف الأيسر (A) يسمى 'المحدد' (Determinant) لأنه يحدد قيمة B."
+            },
+            {
+                q: "8. Which scenario violates 1NF?",
+                options: ["A table with a primary key", "A column storing multiple phone numbers separated by commas", "A table with two columns", "All columns depending on PK"],
+                answer: 1,
+                hint: "تخزين قيم متعددة (فواصل) في خلية واحدة ينتهك شرط الـ Atomicity."
+            },
+            {
+                q: "9. When decomposing a table, what property ensures no information is lost?",
+                options: ["Lossless Join Property", "Dependency Preservation", "Redundancy", "Complexity"],
+                answer: 0,
+                hint: "خاصية 'الانضمام غير الفاقد' تضمن إمكانية استرجاع الجدول الأصلي بدمج الجداول الفرعية."
+            },
+            {
+                q: "10. What is 'Denormalization' primarily used for?",
+                options: ["Reduce storage", "Strict normalization", "Optimize read performance (speed)", "Eliminate anomalies"],
+                answer: 2,
+                hint: "إلغاء التسوية يستخدم لتسريع الاستعلامات (القراءة) على حساب زيادة التكرار قليلاً."
+            },
+
+            // --- Part 2: ER Model & Codd's Rules ---
+            {
+                q: "11. In an ER Diagram, which shape represents a 'Relationship Type'?",
+                options: ["Rectangle", "Ellipse", "Diamond", "Double Rectangle"],
+                answer: 2,
+                hint: "المُعين (Diamond) يمثل العلاقة. المستطيل للكيان، والبيضاوي للصفة."
+            },
+            {
+                q: "12. What does a 'Double Line' connecting an Entity to a Relationship represent?",
+                options: ["Partial Participation", "Total Participation", "Many-to-Many", "Weak Attribute"],
+                answer: 1,
+                hint: "الخط المزدوج يعني المشاركة الكلية (Total Participation)، أي أن وجود الكيان يعتمد كلياً على العلاقة."
+            },
+            {
+                q: "13. Which describes a 'Weak Entity Set'?",
+                options: ["Has its own PK", "Does not have a primary key of its own", "Cannot participate in relationships", "Represented by single rectangle"],
+                answer: 1,
+                hint: "الكيان الضعيف لا يملك مفتاحاً أساسياً خاصاً به، ويعتمد على كيان مالك."
+            },
+            {
+                q: "14. How is a Weak Entity Set represented in ERD?",
+                options: ["Dotted Rectangle", "Double Diamond", "Double Rectangle", "Dashed Ellipse"],
+                answer: 2,
+                hint: "يتم تمثيله بمستطيل مزدوج (Double Rectangle)."
+            },
+            {
+                q: "15. What does 'Cardinality Ratio' specify?",
+                options: ["Minimum instances", "Maximum number of relationship instances (1:1, 1:N, M:N)", "Dependency", "Attributes count"],
+                answer: 1,
+                hint: "نسبة التعداد تحدد الحد الأقصى للعلاقات (واحد لواحد، واحد لمتعدد، الخ)."
+            },
+            {
+                q: "16. Which ERD issue occurs when a pathway is ambiguous for certain occurrences?",
+                options: ["Chasm Trap", "Fan Trap", "Redundancy", "Normalization"],
+                answer: 1,
+                hint: "مصيدة المروحة (Fan Trap) تحدث عند ارتباط كيان واحد بكيانين آخرين بعلاقة 1:N بشكل يسبب غموضاً."
+            },
+            {
+                q: "17. According to Codd’s Rule 3, a Null value represents:",
+                options: ["Zero", "Blank space", "Missing or unknown information", "Syntax error"],
+                answer: 2,
+                hint: "القيمة Null تعني أن المعلومة مفقودة أو غير معروفة، وليست صفراً."
+            },
+            {
+                q: "18. Codd’s Rule 8 (Physical Data Independence) implies:",
+                options: ["Information Rule", "Applications shouldn't change when storage structure changes", "Integrity Independence", "Data Sub-language"],
+                answer: 1,
+                hint: "استقلالية البيانات الفيزيائية تعني أن تغيير طريقة التخزين لا يجب أن يؤثر على البرامج."
+            },
+            {
+                q: "19. Codd’s Rule 12 (Non-Subversion) ensures:",
+                options: ["Low-level languages cannot bypass integrity rules", "Use SQL only", "Database must be normalized", "Store in tables"],
+                answer: 0,
+                hint: "قاعدة عدم التخريب تمنع استخدام لغات منخفضة المستوى للالتفاف على قوانين الحماية."
+            },
+            {
+                q: "20. In a Weak Entity, the attribute used to distinguish records is called:",
+                options: ["Foreign Key", "Super Key", "Partial Key", "Composite Key"],
+                answer: 2,
+                hint: "يسمى المفتاح الجزئي (Partial Key)، ووظيفته تمييز السجلات داخل نفس الكيان المالك."
+            },
+
+            // --- Part 3: Mapping ER to Relational ---
+            {
+                q: "21. When mapping a strong entity, what becomes the Primary Key?",
+                options: ["New surrogate key", "The entity's Identifier", "All attributes", "Foreign key"],
+                answer: 1,
+                hint: "يصبح معرف الكيان (Identifier) هو المفتاح الأساسي للجدول الجديد."
+            },
+            {
+                q: "22. How are 'Composite Attributes' handled during mapping?",
+                options: ["Mapped as single column", "Ignored", "Decomposed into simple attributes (separate columns)", "Moved to separate table"],
+                answer: 2,
+                hint: "يتم تفكيكها إلى مكوناتها البسيطة (مثلاً العنوان يصبح: مدينة، شارع) كأعمدة منفصلة."
+            },
+            {
+                q: "23. How to map a 'Multi-valued Attribute' (e.g., Skills)?",
+                options: ["Create a new separate table", "Multiple columns", "Comma separated", "Like simple attribute"],
+                answer: 0,
+                hint: "السمات متعددة القيم تتطلب إنشاء جدول جديد منفصل يحتوي على القيمة ومفتاح أجنبي."
+            },
+            {
+                q: "24. In a 1:N relationship, where does the Foreign Key go?",
+                options: ["In 'One' side", "In 'Many' side", "Junction table", "Both sides"],
+                answer: 1,
+                hint: "المفتاح ينتقل من طرف 'الواحد' إلى طرف 'المجموعة' (Many side) كمفتاح أجنبي."
+            },
+            {
+                q: "25. How is the Primary Key of a mapped Weak Entity formed?",
+                options: ["Partial key only", "Unique ID", "Composite: Owner PK + Partial Key", "No PK"],
+                answer: 2,
+                hint: "يتكون من دمج المفتاح الأساسي للمالك + المفتاح الجزئي للكيان الضعيف."
+            },
+            {
+                q: "26. What is the standard mapping rule for M:N relationships?",
+                options: ["Create a new Junction Table", "Add FK to one table", "Merge tables", "Delete data"],
+                answer: 0,
+                hint: "علاقة المتعدد-إلى-متعدد تتطلب جدول وسيط (Junction Table) يضم مفتاحي الجدولين."
+            },
+            {
+                q: "27. Mapping a Unary (Recursive) 1:N Relationship requires:",
+                options: ["New table", "Adding FK to same table referencing its own PK", "No change", "Duplicate table"],
+                answer: 1,
+                hint: "يتم إضافة عمود (مفتاح أجنبي) في نفس الجدول يشير إلى المفتاح الأساسي لنفس الجدول."
+            },
+            {
+                q: "28. How is a Ternary Relationship mapped?",
+                options: ["Three 1:N relationships", "Merge entities", "New table with FKs from all 3 entities", "Cannot map"],
+                answer: 2,
+                hint: "يتم إنشاء جدول جديد يحتوي على المفاتيح الأساسية للكيانات الثلاثة."
+            },
+            {
+                q: "29. Why prefer a Surrogate Key for an Associative Entity?",
+                options: ["Composite key might not be unique enough", "Less storage", "Required by DB", "No FK allowed"],
+                answer: 0,
+                hint: "أحياناً المفتاح المركب لا يكفي لتمييز السجل (مثل تكرار الشحنات في نفس اليوم)، لذا نستخدم معرفاً خاصاً."
+            },
+            {
+                q: "30. In COMPANY DB, how is M:N relationship 'WORKS_ON' with attribute 'Hours' mapped?",
+                options: ["Hours in Employee", "Hours in Project", "New table with (SSN, PNumber, Hours)", "Ignored"],
+                answer: 2,
+                hint: "يتم إنشاء جدول جديد يربط الموظف والمشروع، وتوضع السمة 'Hours' بداخله."
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        const totalQuestions = questions.length;
+
+        function loadQuestion() {
+            const q = questions[currentQuestion];
+            document.getElementById("question").textContent = q.q;
+            document.getElementById("q-progress").textContent = `السؤال ${currentQuestion + 1} من ${totalQuestions}`;
+            
+            const optionsDiv = document.getElementById("options");
+            optionsDiv.innerHTML = "";
+            
+            // اخفاء الشرح وزر التالي
+            document.getElementById("explanation").style.display = "none";
+            document.getElementById("next-btn").style.display = "none";
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement("button");
+                btn.className = "option-btn";
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(index, btn);
+                optionsDiv.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex, btnElement) {
+            const q = questions[currentQuestion];
+            const allBtns = document.querySelectorAll(".option-btn");
+            
+            // قفل الازرار
+            allBtns.forEach(btn => btn.disabled = true);
+
+            if (selectedIndex === q.answer) {
+                btnElement.classList.add("correct");
+                score++;
+                document.getElementById("score-tracker").textContent = `النتيجة: ${score}`;
+            } else {
+                btnElement.classList.add("wrong");
+                // تلوين الاجابة الصحيحة
+                allBtns[q.answer].classList.add("correct");
+            }
+
+            // عرض الشرح
+            document.getElementById("explanation-text").textContent = q.hint;
+            document.getElementById("explanation").style.display = "block";
+            document.getElementById("next-btn").style.display = "inline-block";
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            if (currentQuestion < totalQuestions) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById("quiz-box").style.display = "none";
+            document.getElementById("result-box").style.display = "block";
+            
+            document.getElementById("final-score").textContent = `${score}/${totalQuestions}`;
+            
+            let msg = "";
+            const percent = (score / totalQuestions) * 100;
+            if (percent >= 90) msg = "ما شاء الله! عبقري قواعد بيانات 🦁🔥";
+            else if (percent >= 75) msg = "وحش! مستوى ممتاز جداً 💪";
+            else if (percent >= 50) msg = "جيد، بس تحتاج مراجعة بسيطة 😉";
+            else msg = "لازم تشد حيلك وتعيد القراءة 📚";
+            
+            document.getElementById("final-msg").textContent = msg;
+        }
+
+        // بدء الاختبار
+        loadQuestion();
+    </script>
+</body>
+</html>
